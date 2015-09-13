@@ -1,9 +1,8 @@
 import pandas
 import numpy as np
-from sklearn.linear_model import LogisticRegression
-from sklearn import cross_validation
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.cross_validation import KFold
+from sklearn.ensemble import AdaBoostClassifier
+from sklearn.cross_validation import cross_val_score
+
 
 def SexToNum(string):
     if string == 'male':
@@ -40,32 +39,12 @@ for port, port_col in zip(ports, ports_col):
 
 predictors = ["Pclass", "Sex", "Age", "SibSp", "Parch", "EmbarkedS", "EmbarkedC", "EmbarkedQ"]
 
-algorithms = [RandomForestClassifier(random_state=1, n_estimators=150, min_samples_split=4,min_samples_leaf=2),             LogisticRegression(random_state=1)]
+alg = AdaBoostClassifier()
+alg.fit(titanic_train[predictors], titanic_train["Survived"])
 
-kf = KFold(titanic_train.shape[0], n_folds=3, random_state=1)
+output = pandas.DataFrame(titanic_test["PassengerId"])
+output["Survived"] = alg.predict(titanic_test[predictors])
 
-predictions = []
-for train, test in kf:
-    train_target = titanic_train["Survived"].iloc[train]
-    full_test_predictions = []
-    # Make predictions for each algorithm on each fold
-    for alg in algorithms:
-        # Fit the algorithm on the training data.
-        alg.fit(titanic_train[predictors].iloc[train,:], train_target)
-        # Select and predict on the test fold.  
-        # The .astype(float) is necessary to convert the dataframe to all floats and avoid an sklearn error.
-        test_predictions = alg.predict_proba(titanic_train[predictors].iloc[test,:].astype(float))[:,1]
-        full_test_predictions.append(test_predictions)
-    # Use a simple ensembling scheme -- just average the predictions to get the final classification.
-    test_predictions = (full_test_predictions[0] + full_test_predictions[1]) / 2
-    # Any value over .5 is assumed to be a 1 prediction, and below .5 is a 0 prediction.
-    test_predictions[test_predictions <= .5] = 0
-    test_predictions[test_predictions > .5] = 1
-    predictions.append(test_predictions)
+print(output.head())
 
-# Put all the predictions together into one array.
-predictions = np.concatenate(predictions, axis=0)
-
-# Compute accuracy by comparing to the training data.
-accuracy = sum(predictions[predictions == titanic_train["Survived"]]) / len(predictions)
-print(accuracy)
+output.to_csv('kaggle.csv', index=False)
