@@ -75,4 +75,4 @@ submission = pandas.DataFrame({
     "Survived": predictions.astype(int)
     })
 
-submission.to_csv("kaggle.csv", index=False)
+submission.to_csv("blender_submission.csv", index=False)
